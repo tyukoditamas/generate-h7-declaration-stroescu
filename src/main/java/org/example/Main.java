@@ -226,7 +226,7 @@ public class Main {
         LocalDate timestamp = LocalDateTime.now().toLocalDate();
         XMLOutputter xmlOutputter = new XMLOutputter();
 
-        String path = System.getProperty("user.home") + "\\Desktop\\xmls\\" + timestamp + "\\";
+        String path = System.getProperty("user.home") + "/Desktop/xmls/" + timestamp + "//";
         File filepath = new File(path);
 
         Files.createDirectories(Paths.get(filepath.toURI()));
