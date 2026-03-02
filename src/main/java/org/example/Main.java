@@ -29,9 +29,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 
 public class Main {
+    private static final String COMPANY_EORI = "RO33147998";
+    private static final String LOCATION_AUTHORIZATION = "ROTSTRODRVTM00030-2016";
+    private static final Namespace NS_COMMON =
+            Namespace.getNamespace("urn:uccv:xsd:imp:1.0.0_2.00:CCommon");
+    private static final Namespace NS_CC415 =
+            Namespace.getNamespace("ns2", "urn:uccv:xsd:imp:1.0.0_2.00:CC415");
+    private static final Namespace NS_DECLARATION =
+            Namespace.getNamespace("ns3", "urn:uccv:xsd:imp:1.0.0_2.00:Declaration");
     private static JTextArea logArea;
     public static void main(String[] args) {
 
@@ -115,15 +124,25 @@ public class Main {
                         case 1:
                             cargoManifest.setNrContainer(formatter.formatCellValue(cell));
                             break;
+                        case 2:
+                            cargoManifest.setPreviousDocumentReference(formatter.formatCellValue(cell));
+                            break;
                         case 4:
-                            cargoManifest.setNrDeclaratieVamala(cell.getStringCellValue());
+                            cargoManifest.setNrDeclaratieVamala(formatter.formatCellValue(cell));
                             break;
                         case 5:
                             cargoManifest.setNrT1(formatter.formatCellValue(cell));
                             break;
                         case 6:
-                            cargoManifest.setPrenumeDest(cell.getStringCellValue().substring(cell.getStringCellValue().indexOf(" ") + 1));
-                            cargoManifest.setNumeDest(cell.getStringCellValue().substring(0, cell.getStringCellValue().indexOf(" ")));
+                            String importerName = formatter.formatCellValue(cell).trim();
+                            int importerSplitIndex = importerName.indexOf(" ");
+                            if (importerSplitIndex > 0) {
+                                cargoManifest.setNumeDest(importerName.substring(0, importerSplitIndex));
+                                cargoManifest.setPrenumeDest(importerName.substring(importerSplitIndex + 1));
+                            } else {
+                                cargoManifest.setNumeDest(importerName);
+                                cargoManifest.setPrenumeDest("");
+                            }
                             break;
                         case 7:
                             String addressImp = formatter.formatCellValue(cell);
@@ -137,9 +156,19 @@ public class Main {
                         case 9:
                             cargoManifest.setCodPostalImportator(formatter.formatCellValue(cell));
                             break;
+                        case 10:
+                            cargoManifest.setTaraImportator(formatter.formatCellValue(cell));
+                            break;
                         case 13:
-                            cargoManifest.setPrenumeExp(cell.getStringCellValue().substring(0, cell.getStringCellValue().indexOf(" ")));
-                            cargoManifest.setNumeExp(cell.getStringCellValue().substring(cell.getStringCellValue().indexOf(" ") + 1));
+                            String exporterName = formatter.formatCellValue(cell).trim();
+                            int exporterSplitIndex = exporterName.indexOf(" ");
+                            if (exporterSplitIndex > 0) {
+                                cargoManifest.setPrenumeExp(exporterName.substring(0, exporterSplitIndex));
+                                cargoManifest.setNumeExp(exporterName.substring(exporterSplitIndex + 1));
+                            } else {
+                                cargoManifest.setPrenumeExp(exporterName);
+                                cargoManifest.setNumeExp("");
+                            }
                             break;
                         case 14:
                             String address = formatter.formatCellValue(cell);
@@ -157,6 +186,15 @@ public class Main {
                         case 17:
                             cargoManifest.setTara(formatter.formatCellValue(cell));
                             break;
+                        case 18:
+                            cargoManifest.setTypeOfLocation(formatter.formatCellValue(cell));
+                            break;
+                        case 19:
+                            cargoManifest.setQualifierOfIdentification(formatter.formatCellValue(cell));
+                            break;
+                        case 20:
+                            cargoManifest.setCustomsOffice(formatter.formatCellValue(cell));
+                            break;
                         case 25:
                             cargoManifest.setHarmonizedCode(formatter.formatCellValue(cell));
                             break;
@@ -168,6 +206,7 @@ public class Main {
                             break;
                         case 28:
                             cargoManifest.setCurrency(formatter.formatCellValue(cell));
+                            break;
                         case 29:
                             cargoManifest.setRegimSuplimentar(cell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(Double.valueOf(cell.getNumericCellValue())) : cell.getStringCellValue());
                             break;
@@ -180,11 +219,25 @@ public class Main {
                         case 32:
                             cargoManifest.setNrCol(formatter.formatCellValue(cell));
                             break;
+                        case 33:
+                            cargoManifest.setSupportingDocumentType(formatter.formatCellValue(cell));
+                            break;
+                        case 34:
+                            cargoManifest.setSupportingDocumentReference(formatter.formatCellValue(cell));
+                            break;
                         case 35:
-                            cargoManifest.setDataDocument(cell.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().toString().replaceAll("-", ""));
+                            try {
+                                cargoManifest.setDataDocument(cell.getDateCellValue().toInstant()
+                                        .atZone(ZoneId.systemDefault()).toLocalDate().toString().replaceAll("-", ""));
+                            } catch (Exception ignored) {
+                                cargoManifest.setDataDocument(formatter.formatCellValue(cell));
+                            }
                             break;
                         case 37:
                             cargoManifest.setDeposit(formatter.formatCellValue(cell));
+                            break;
+                        case 48:
+                            cargoManifest.setTsdNr(formatter.formatCellValue(cell));
                     }
                 }
                 cargoManifestList.add(cargoManifest);
@@ -204,23 +257,43 @@ public class Main {
     private static void generateXmlFile(CargoManifest cargoManifest) throws IOException {
 
         Document document = new Document();
-        String lrn = String.format("%ty", Year.now()) + "-33147998-" + cargoManifest.getNrDeclaratieVamala();
+        String lrn = String.format("%ty", Year.now()) + COMPANY_EORI + safe(cargoManifest.getNrDeclaratieVamala());
 
-        Namespace sNS = Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+        Element root = new Element("CC415", NS_CC415);
+        root.addNamespaceDeclaration(NS_COMMON);
+        root.addNamespaceDeclaration(NS_DECLARATION);
+        document.setRootElement(root);
 
-        Element root = new Element("SRD415");
-        root.addNamespaceDeclaration(sNS);
-        document.addContent(root);
+        Element message = new Element("MESSAGE", NS_CC415);
+        root.addContent(message);
+        addMessage(message);
 
-        Element messages = new Element("MESSAGE");
-        Element declaration = new Element("Declaration");
-        Element goodsShipment = new Element("GoodsShipment");
-        root.addContent(messages);
-        root.addContent(declaration);
+        Element importOperation = new Element("ImportOperation", NS_CC415);
+        root.addContent(importOperation);
+        addImportOperation(importOperation, lrn);
+
+        Element nationalDeclaration = new Element("NationalDeclaration", NS_CC415);
+        root.addContent(nationalDeclaration);
+        addNationalDeclaration(nationalDeclaration);
+
+        Element customsOffice = new Element("CustomsOffice", NS_CC415);
+        root.addContent(customsOffice);
+        addCustomsOffice(customsOffice, cargoManifest);
+
+        Element importer = new Element("Importer", NS_CC415);
+        root.addContent(importer);
+        addImporter(importer, cargoManifest);
+
+        Element declarant = new Element("Declarant", NS_CC415);
+        root.addContent(declarant);
+        addDeclarant(declarant);
+
+        Element representative = new Element("Representative", NS_CC415);
+        root.addContent(representative);
+        addRepresentative(representative);
+
+        Element goodsShipment = new Element("GoodsShipment", NS_CC415);
         root.addContent(goodsShipment);
-
-        addMessages(messages);
-        addDeclaration(declaration, lrn, cargoManifest);
         addGoodsShipment(goodsShipment, cargoManifest);
 
         LocalDate timestamp = LocalDateTime.now().toLocalDate();
@@ -240,208 +313,166 @@ public class Main {
         logMessage("Done creating XML File");
     }
 
-    private static void addGoodsShipment(Element goodsShipment, CargoManifest cargoManifest) {
-        Element gsExporter = new Element("GSExporter");
-        goodsShipment.addContent(gsExporter);
-        addGSExporter(gsExporter, cargoManifest);
-
-        Element gSPreviousDocumentsX337 = new Element("GSPreviousDocuments");
-        goodsShipment.addContent(gSPreviousDocumentsX337);
-        addGSPreviousDocumentsX337(gSPreviousDocumentsX337, cargoManifest);
-
-        Element gSSupportingDocumentsN271 = new Element("GSSupportingDocuments");
-        goodsShipment.addContent(gSSupportingDocumentsN271);
-        addGSSupportingDocumentsN271(gSSupportingDocumentsN271, cargoManifest);
-
-        Element gSSupportingDocumentsN730 = new Element("GSSupportingDocuments");
-        goodsShipment.addContent(gSSupportingDocumentsN730);
-        addGSSupportingDocumentsN730(gSSupportingDocumentsN730, cargoManifest);
-
-//        Element gSSupportingDocumentsN821 = new Element("GSSupportingDocuments");
-//        goodsShipment.addContent(gSSupportingDocumentsN821);
-//        addGSSupportingDocumentsN821(gSSupportingDocumentsN821, cargoManifest);
-
-        Element locationOfGoods = new Element("LocationOfGoods");
-        goodsShipment.addContent(locationOfGoods);
-        addLocationOfGoods(locationOfGoods, cargoManifest);
-
-        Element goodsItem = new Element("GoodsItem");
-        goodsShipment.addContent(goodsItem);
-        addGoodsItem(goodsItem, cargoManifest);
+    private static void addMessage(Element message) {
+        addTextElement(message, "MessageSender", NS_COMMON, COMPANY_EORI);
+        addTextElement(message, "MessageRecipient", NS_COMMON, "IMP.RO");
+        addTextElement(message, "PreparationDateAndTime", NS_COMMON,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString());
+        addTextElement(message, "MessageIdentification", NS_COMMON, UUID.randomUUID().toString());
+        addTextElement(message, "MessageType", NS_COMMON, "CC415");
     }
 
-    private static void addGSPreviousDocumentsX337(Element gSPreviousDocumentsX337, CargoManifest cargoManifest) {
-        gSPreviousDocumentsX337.addContent(new Element("PreviousDocumentCategory").setText("X"));
-        gSPreviousDocumentsX337.addContent(new Element("PreviousDocumentType").setText("337"));
-        gSPreviousDocumentsX337.addContent(new Element("PreviousDocumentReferenceNumber").setText("NU ESTE CAZUL"));
-        gSPreviousDocumentsX337.addContent(new Element("PreviousDocumentDate").setText(cargoManifest.getDataDocument()));
+    private static void addImportOperation(Element importOperation, String lrn) {
+        addTextElement(importOperation, "LRN", NS_DECLARATION, lrn);
+        addTextElement(importOperation, "declarationType", NS_DECLARATION, "IM");
+        addTextElement(importOperation, "additionalDeclarationType", NS_DECLARATION, "A");
     }
 
-    private static void addGoodsItem(Element goodsItem, CargoManifest cargoManifest) {
-        goodsItem.addContent(new Element("GoodsItemNumber").setText("1"));
-
-        Element goodsInformation = new Element("GoodsInformation");
-        goodsItem.addContent(goodsInformation);
-        addGoodsInformation(goodsInformation, cargoManifest);
-
-        Element intrinsicValue = new Element("IntrinsicValue");
-        goodsItem.addContent(intrinsicValue);
-        addIntrinsicValue(intrinsicValue, cargoManifest);
-
-        Element procedures = new Element("Procedures");
-        goodsItem.addContent(procedures);
-        addProcedures(procedures, cargoManifest);
-
-        goodsItem.addContent(new Element("SIGrossMass").setText(cargoManifest.getGreutateKg()));
+    private static void addNationalDeclaration(Element nationalDeclaration) {
+        addTextElement(nationalDeclaration, "CustomType", NS_DECLARATION, "standard");
+        addTextElement(nationalDeclaration, "DeclarationCategory", NS_DECLARATION, "H7");
+        addTextElement(nationalDeclaration, "SafetySecurityFeatures", NS_DECLARATION, "false");
     }
 
-    private static void addProcedures(Element procedures, CargoManifest cargoManifest) {
-        procedures.addContent(new Element("AdditionalProcedure").setText(cargoManifest.getRegimSuplimentar()));
-    }
-
-    private static void addIntrinsicValue(Element intrinsicValue, CargoManifest cargoManifest) {
-        intrinsicValue.addContent(new Element("ValueAmount").setText(cargoManifest.getValEur()));
-        intrinsicValue.addContent(new Element("ValueCurrency").setText(cargoManifest.getCurrency()));
-    }
-
-    private static void addGoodsInformation(Element goodsInformation, CargoManifest cargoManifest) {
-        Element descriptionOfGoods = new Element("DescriptionOfGoods");
-        goodsInformation.addContent(descriptionOfGoods);
-        addDescriptionOfGoods(descriptionOfGoods, cargoManifest);
-
-        goodsInformation.addContent(new Element("PackageNumber").setText(cargoManifest.getNrCol()));
-
-        Element commodityCode = new Element("CommodityCode");
-        goodsInformation.addContent(commodityCode);
-        addCommodityCode(commodityCode, cargoManifest);
-    }
-
-    private static void addCommodityCode(Element commodityCode, CargoManifest cargoManifest) {
-        commodityCode.addContent(new Element("CommodityCodeHarmonizedSystemSubHeadingCode").setText(cargoManifest.getHarmonizedCode()));
-    }
-
-    private static void addDescriptionOfGoods(Element descriptionOfGoods, CargoManifest cargoManifest) {
-        descriptionOfGoods.addContent(new Element("DescriptionOfGood").setText(cargoManifest.getObservatii()));
-    }
-
-    private static void addLocationOfGoods(Element locationOfGoods, CargoManifest cargoManifest) {
-        locationOfGoods.addContent(new Element("LocationOfGoodsTypeOfLocation").setText("B"));
-        locationOfGoods.addContent(new Element("LocationOfGoodsQualifierOfIdentification").setText("V"));
-        locationOfGoods.addContent(new Element("LocationOfGoodsCustomsOffice").setText("ROTM0200"));
-    }
-
-    private static void addGSSupportingDocumentsN821(Element gSSupportingDocumentsN821, CargoManifest cargoManifest) {
-        gSSupportingDocumentsN821.addContent(new Element("SupportingDocumentType").setText("N821"));
-        gSSupportingDocumentsN821.addContent(new Element("SupportingDocumentReferenceNumber").setText(cargoManifest.getNrT1()));
-        gSSupportingDocumentsN821.addContent(new Element("SupportingDocumentDate").setText(cargoManifest.getDataDocument()));
-    }
-
-    private static void addGSSupportingDocumentsN730(Element gSSupportingDocumentsN730, CargoManifest cargoManifest) {
-        gSSupportingDocumentsN730.addContent(new Element("SupportingDocumentType").setText("N730"));
-        gSSupportingDocumentsN730.addContent(new Element("SupportingDocumentReferenceNumber").setText(cargoManifest.getNrContainer()));
-        gSSupportingDocumentsN730.addContent(new Element("SupportingDocumentDate").setText(cargoManifest.getDataDocument()));
-    }
-
-    private static void addGSSupportingDocumentsN271(Element gSSupportingDocumentsN271, CargoManifest cargoManifest) {
-        gSSupportingDocumentsN271.addContent(new Element("SupportingDocumentType").setText("C665"));
-        gSSupportingDocumentsN271.addContent(new Element("SupportingDocumentReferenceNumber").setText("CN23"));
-        gSSupportingDocumentsN271.addContent(new Element("SupportingDocumentDate").setText(cargoManifest.getDataDocument()));
-    }
-
-    private static void addGSExporter(Element gsExporter, CargoManifest cargoManifest) {
-        Element exporter = new Element("Exporter");
-        gsExporter.addContent(exporter);
-        addExporter(exporter, cargoManifest);
-
-        Element additionalFiscalReference = new Element("AdditionalFiscalReference");
-        gsExporter.addContent(additionalFiscalReference);
-        addAdditionalFiscalReference(additionalFiscalReference);
-    }
-
-    private static void addAdditionalFiscalReference(Element additionalFiscalReference) {
-        additionalFiscalReference.addContent(new Element("AdditionalFiscalReferenceRole").setText("FR1"));
-    }
-
-    private static void addExporter(Element exporter, CargoManifest cargoManifest) {
-        exporter.addContent(new Element("ExporterName").setText(cargoManifest.getNumeExp() + " " + cargoManifest.getPrenumeExp()));
-        Element exporterAddress = new Element("ExporterAddress");
-        exporter.addContent(exporterAddress);
-        addExporterAddress(exporterAddress, cargoManifest);
-    }
-
-    private static void addExporterAddress(Element exporterAddress, CargoManifest cargoManifest) {
-        exporterAddress.addContent(new Element("ExporterAddressCity").setText(cargoManifest.getOrasDest()));
-        exporterAddress.addContent(new Element("ExporterAddressCountry").setText(cargoManifest.getTara()));
-        exporterAddress.addContent(new Element("ExporterAddressStreetAndNumber").setText(cargoManifest.getAdresaExp()));
-        exporterAddress.addContent(new Element("ExporterAddressPostCode").setText(cargoManifest.getCodPostalExpeditor()));
-    }
-
-    private static void addDeclaration(Element declaration, String lrn, CargoManifest cargoManifest) {
-        declaration.addContent(new Element("LRN").setText(lrn));
-        declaration.addContent(new Element("AdditionalDeclarationType").setText("A"));
-
-        Element customsOffices = new Element("CustomsOffices");
-        declaration.addContent(customsOffices);
-        addCustomsOffices(customsOffices);
-
-        Element importer = new Element("Importer");
-        declaration.addContent(importer);
-        addImporter(importer, cargoManifest);
-
-        Element declarant = new Element("Declarant");
-        declaration.addContent(declarant);
-        addDeclarant(declarant);
-
-        Element representative = new Element("Representative");
-        declaration.addContent(representative);
-        addRepresentative(representative);
-
-        if (cargoManifest.getDeposit() != null && !cargoManifest.getDeposit().isEmpty()){
-            Element depositAdvancePayment = new Element("DepositAdvancePayment").setText(cargoManifest.getDeposit());
-            declaration.addContent(depositAdvancePayment);
-            // addDepositAdvancePayment(depositAdvancePayment);
-        }
-    }
-
-
-
-    private static void addRepresentative(Element representative) {
-        representative.addContent(new Element("RepresentativeIdentificationNumber").setText("RO33147998"));
-        representative.addContent(new Element("RepresentativeStatus").setText("3"));
-    }
-
-    private static void addDeclarant(Element declarant) {
-        declarant.addContent(new Element("DeclarantIdentificationNumber").setText("RO33147998"));
+    private static void addCustomsOffice(Element customsOffice, CargoManifest cargoManifest) {
+        addTextElement(customsOffice, "referenceNumber", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getCustomsOffice(), "ROTM0200"));
     }
 
     private static void addImporter(Element importer, CargoManifest cargoManifest) {
-        importer.addContent(new Element("ImporterName").setText(cargoManifest.getNumeDest()
-                + " " + cargoManifest.getPrenumeDest()));
+        addTextElement(importer, "name", NS_DECLARATION,
+                fullName(cargoManifest.getNumeDest(), cargoManifest.getPrenumeDest()));
 
-        Element importerAddress = new Element("ImporterAddress");
-        importer.addContent(importerAddress);
-        addImporterAddress(importerAddress, cargoManifest);
-
+        Element address = new Element("Address", NS_DECLARATION);
+        importer.addContent(address);
+        addTextElement(address, "streetAndNumber", NS_DECLARATION, cargoManifest.getAdresaDest());
+        addTextElement(address, "city", NS_DECLARATION, cargoManifest.getLocalitate());
+        addTextElement(address, "postcode", NS_DECLARATION, cargoManifest.getCodPostalImportator());
+        addTextElement(address, "country", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getTaraImportator(), "RO"));
     }
 
-    private static void addImporterAddress(Element importerAddress, CargoManifest cargoManifest) {
-        importerAddress.addContent(new Element("ImporterAddressCity").setText(cargoManifest.getLocalitate()));
-        importerAddress.addContent(new Element("ImporterAddressCountry").setText("RO"));
-        importerAddress.addContent(new Element("ImporterAddressStreetAndNumber").setText(cargoManifest.getAdresaDest()));
-        importerAddress.addContent(new Element("ImporterAddressPostCode").setText(cargoManifest.getCodPostalImportator()));
-
+    private static void addDeclarant(Element declarant) {
+        addTextElement(declarant, "identificationNumber", NS_DECLARATION, COMPANY_EORI);
     }
 
-    private static void addCustomsOffices(Element customsOffices) {
-        customsOffices.addContent(new Element("CustomsOffice").setText("ROTM0200"));
+    private static void addRepresentative(Element representative) {
+        addTextElement(representative, "status", NS_DECLARATION, "3");
     }
 
-    private static void addMessages(Element messages) {
-        messages.addContent(new Element("MessageSender").setText("RO33147998"));
-        messages.addContent(new Element("MessageRecipient").setText("MESSRD"));
-        messages.addContent(new Element("PreparationDateAndTime").setText(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString()));
-        messages.addContent(new Element("MessageIdentification").setText("RO33147998-000000001"));
-        messages.addContent(new Element("MessageType").setText("SRD415"));
+    private static void addGoodsShipment(Element goodsShipment, CargoManifest cargoManifest) {
+        addTextElement(goodsShipment, "sequenceNumber", NS_DECLARATION, "1");
+
+        Element supportingDocument = new Element("SupportingDocument", NS_DECLARATION);
+        goodsShipment.addContent(supportingDocument);
+        addTextElement(supportingDocument, "sequenceNumber", NS_DECLARATION, "1");
+        addTextElement(supportingDocument, "type", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getSupportingDocumentType(), "C665"));
+        addTextElement(supportingDocument, "referenceNumber", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getSupportingDocumentReference(), "DA"));
+
+        Element exporter = new Element("Exporter", NS_DECLARATION);
+        goodsShipment.addContent(exporter);
+        addTextElement(exporter, "name", NS_DECLARATION,
+                fullName(cargoManifest.getNumeExp(), cargoManifest.getPrenumeExp()));
+        Element exporterAddress = new Element("Address", NS_DECLARATION);
+        exporter.addContent(exporterAddress);
+        addTextElement(exporterAddress, "streetAndNumber", NS_DECLARATION, cargoManifest.getAdresaExp());
+        addTextElement(exporterAddress, "city", NS_DECLARATION, cargoManifest.getOrasDest());
+        addTextElement(exporterAddress, "postcode", NS_DECLARATION, cargoManifest.getCodPostalExpeditor());
+        addTextElement(exporterAddress, "country", NS_DECLARATION, cargoManifest.getTara());
+
+        Element consignment = new Element("Consignment", NS_DECLARATION);
+        goodsShipment.addContent(consignment);
+
+        Element locationOfGoods = new Element("LocationOfGoods", NS_DECLARATION);
+        consignment.addContent(locationOfGoods);
+        addTextElement(locationOfGoods, "typeOfLocation", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getTypeOfLocation(), "B"));
+        addTextElement(locationOfGoods, "qualifierOfIdentification", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getQualifierOfIdentification(), "Y"));
+        addTextElement(locationOfGoods, "authorisationNumber", NS_DECLARATION, LOCATION_AUTHORIZATION);
+
+        Element transportDocument = new Element("TransportDocument", NS_DECLARATION);
+        consignment.addContent(transportDocument);
+        addTextElement(transportDocument, "sequenceNumber", NS_DECLARATION, "1");
+        addTextElement(transportDocument, "referenceNumber", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getNrContainer(), "CMR"));
+        addTextElement(transportDocument, "type", NS_DECLARATION, "N730");
+
+        Element goodsShipmentItem = new Element("GoodsShipmentItem", NS_DECLARATION);
+        goodsShipment.addContent(goodsShipmentItem);
+        addTextElement(goodsShipmentItem, "declarationGoodsItemNumber", NS_DECLARATION, "1");
+
+        Element procedure = new Element("Procedure", NS_DECLARATION);
+        goodsShipmentItem.addContent(procedure);
+        addTextElement(procedure, "requestedProcedure", NS_DECLARATION, "40");
+        addTextElement(procedure, "previousProcedure", NS_DECLARATION, "00");
+        addAdditionalProcedure(procedure, 1, "000");
+        addAdditionalProcedure(procedure, 2, defaultIfBlank(cargoManifest.getRegimSuplimentar(), "C08"));
+
+        Element previousDocument = new Element("PreviousDocument", NS_DECLARATION);
+        goodsShipmentItem.addContent(previousDocument);
+        addTextElement(previousDocument, "sequenceNumber", NS_DECLARATION, "1");
+        addTextElement(previousDocument, "referenceNumber", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getTsdNr(),
+                        defaultIfBlank(cargoManifest.getPreviousDocumentReference(), "1")));
+        addTextElement(previousDocument, "type", NS_DECLARATION, "N337");
+
+        Element commodity = new Element("Commodity", NS_DECLARATION);
+        goodsShipmentItem.addContent(commodity);
+        addTextElement(commodity, "descriptionOfGoods", NS_DECLARATION, cargoManifest.getObservatii());
+
+        Element commodityCode = new Element("CommodityCode", NS_DECLARATION);
+        commodity.addContent(commodityCode);
+        addTextElement(commodityCode, "harmonizedSystemSubheadingCode", NS_DECLARATION, cargoManifest.getHarmonizedCode());
+
+        Element goodsMeasure = new Element("GoodsMeasure", NS_DECLARATION);
+        commodity.addContent(goodsMeasure);
+        addTextElement(goodsMeasure, "grossMass", NS_DECLARATION, cargoManifest.getGreutateKg());
+
+        Element packaging = new Element("Packaging", NS_DECLARATION);
+        goodsShipmentItem.addContent(packaging);
+        addTextElement(packaging, "sequenceNumber", NS_DECLARATION, "1");
+        addTextElement(packaging, "numberOfPackages", NS_DECLARATION, cargoManifest.getNrCol());
+
+        Element intrinsicValue = new Element("IntrinsicValue", NS_DECLARATION);
+        goodsShipmentItem.addContent(intrinsicValue);
+        addTextElement(intrinsicValue, "intrinsicValueCurrency", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getCurrency(), "USD"));
+        addTextElement(intrinsicValue, "intrinsicValueAmount", NS_DECLARATION,
+                defaultIfBlank(cargoManifest.getValEur(), "0"));
+    }
+
+    private static void addAdditionalProcedure(Element procedure, int sequenceNumber, String additionalProcedureCode) {
+        Element additionalProcedure = new Element("AdditionalProcedure", NS_DECLARATION);
+        procedure.addContent(additionalProcedure);
+        addTextElement(additionalProcedure, "sequenceNumber", NS_DECLARATION, String.valueOf(sequenceNumber));
+        addTextElement(additionalProcedure, "additionalProcedure", NS_DECLARATION, additionalProcedureCode);
+    }
+
+    private static void addTextElement(Element parent, String name, Namespace namespace, String value) {
+        parent.addContent(new Element(name, namespace).setText(safe(value)));
+    }
+
+    private static String defaultIfBlank(String value, String fallback) {
+        return safe(value).isEmpty() ? fallback : safe(value);
+    }
+
+    private static String fullName(String firstName, String lastName) {
+        String first = safe(firstName);
+        String last = safe(lastName);
+        if (first.isEmpty()) {
+            return last;
+        }
+        if (last.isEmpty()) {
+            return first;
+        }
+        return first + " " + last;
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static CargoManifest mapRow(ResultSet rs) throws SQLException {

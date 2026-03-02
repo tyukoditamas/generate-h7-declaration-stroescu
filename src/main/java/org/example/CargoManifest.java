@@ -10,10 +10,13 @@ import lombok.*;
 public class CargoManifest {
     private String nrDeclaratieVamala;
     private String codColet;
+    private String tsdNr;
+    private String previousDocumentReference;
     private String numeExp;
     private String prenumeExp;
     private String adresaExp;
     private String tara;
+    private String taraImportator;
     private String orasDest;
     private String numeDest;
     private String prenumeDest;
@@ -34,4 +37,9 @@ public class CargoManifest {
     private String harmonizedCode;
     private String currency;
     private String deposit;
+    private String typeOfLocation;
+    private String qualifierOfIdentification;
+    private String customsOffice;
+    private String supportingDocumentType;
+    private String supportingDocumentReference;
 }

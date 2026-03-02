@@ -1,6 +1,0 @@
-org\example\InvalidObjectFieldNameException.class
-org\example\CargoManifest$CargoManifestBuilder.class
-org\example\Main.class
-org\example\CargoManifest.class
-org\example\ExcelToObjectMapper.class
-org\example\InvalidExcelFileException.class
