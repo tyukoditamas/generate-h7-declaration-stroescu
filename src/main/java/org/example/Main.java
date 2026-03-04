@@ -33,7 +33,7 @@ import java.util.UUID;
 
 
 public class Main {
-    private static final String COMPANY_EORI = "RO33147998";
+    private static final String COMPANY_EORI = "RO29631670";
     private static final String LOCATION_AUTHORIZATION = "ROTSTRODRVTM00030-2016";
     private static final Namespace NS_COMMON =
             Namespace.getNamespace("urn:uccv:xsd:imp:1.0.0_2.00:CCommon");
