@@ -388,10 +388,12 @@ public class Main {
         Element locationOfGoods = new Element("LocationOfGoods", NS_DECLARATION);
         consignment.addContent(locationOfGoods);
         addTextElement(locationOfGoods, "typeOfLocation", NS_DECLARATION,
-                defaultIfBlank(cargoManifest.getTypeOfLocation(), "B"));
+                defaultIfBlank(cargoManifest.getTypeOfLocation(), "A"));
         addTextElement(locationOfGoods, "qualifierOfIdentification", NS_DECLARATION,
                 defaultIfBlank(cargoManifest.getQualifierOfIdentification(), "Y"));
-        addTextElement(locationOfGoods, "authorisationNumber", NS_DECLARATION, LOCATION_AUTHORIZATION);
+        Element locationCustomsOffice = new Element("CustomsOffice", NS_DECLARATION);
+        locationOfGoods.addContent(locationCustomsOffice);
+        addCustomsOffice(locationCustomsOffice, cargoManifest);
 
         Element transportDocument = new Element("TransportDocument", NS_DECLARATION);
         consignment.addContent(transportDocument);
