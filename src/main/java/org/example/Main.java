@@ -238,6 +238,13 @@ public class Main {
                             break;
                         case 48:
                             cargoManifest.setTsdNr(formatter.formatCellValue(cell));
+                            break;
+                        case 49:
+                            cargoManifest.setMarfuriMultiple(formatter.formatCellValue(cell));
+                            break;
+                        case 50:
+                            cargoManifest.setTipTranzit(formatter.formatCellValue(cell));
+                            break;
                     }
                 }
                 cargoManifestList.add(cargoManifest);
@@ -315,7 +322,7 @@ public class Main {
 
     private static void addMessage(Element message) {
         addTextElement(message, "MessageSender", NS_COMMON, COMPANY_EORI);
-        addTextElement(message, "MessageRecipient", NS_COMMON, "IMP.RO");
+        addTextElement(message, "MessageRecipient", NS_COMMON, "IMP");
         addTextElement(message, "PreparationDateAndTime", NS_COMMON,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString());
         addTextElement(message, "MessageIdentification", NS_COMMON, UUID.randomUUID().toString());
@@ -371,6 +378,14 @@ public class Main {
         addTextElement(supportingDocument, "referenceNumber", NS_DECLARATION,
                 defaultIfBlank(cargoManifest.getSupportingDocumentReference(), "DA"));
 
+        Element supportingDocument2 = new Element("SupportingDocument", NS_DECLARATION);
+        goodsShipment.addContent(supportingDocument2);
+        addTextElement(supportingDocument2, "sequenceNumber", NS_DECLARATION, "2");
+        addTextElement(supportingDocument2, "type", NS_DECLARATION,
+                defaultIfBlank("1094", "1094"));
+        addTextElement(supportingDocument2, "referenceNumber", NS_DECLARATION,
+                defaultIfBlank("APROBARE VAMA NR. 671/05.03.2026", "APROBARE VAMA NR. 671/05.03.2026"));
+
         Element exporter = new Element("Exporter", NS_DECLARATION);
         goodsShipment.addContent(exporter);
         addTextElement(exporter, "name", NS_DECLARATION,
@@ -419,11 +434,12 @@ public class Main {
         addTextElement(previousDocument, "referenceNumber", NS_DECLARATION,
                 defaultIfBlank(cargoManifest.getTsdNr(),
                         defaultIfBlank(cargoManifest.getPreviousDocumentReference(), "1")));
-        addTextElement(previousDocument, "type", NS_DECLARATION, "N337");
+        addTextElement(previousDocument, "type", NS_DECLARATION, cargoManifest.getTipTranzit());
 
         Element commodity = new Element("Commodity", NS_DECLARATION);
         goodsShipmentItem.addContent(commodity);
-        addTextElement(commodity, "descriptionOfGoods", NS_DECLARATION, cargoManifest.getObservatii());
+        addTextElement(commodity, "descriptionOfGoods", NS_DECLARATION, cargoManifest.getObservatii() +
+                (cargoManifest.getMarfuriMultiple().equalsIgnoreCase("DA") ? " - Marfa declarata CF Art. 177 din Reg. UE 952/2013 in urma aprobarii Vamii" : ""));
 
         Element commodityCode = new Element("CommodityCode", NS_DECLARATION);
         commodity.addContent(commodityCode);

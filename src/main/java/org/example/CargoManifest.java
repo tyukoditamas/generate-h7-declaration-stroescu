@@ -42,4 +42,6 @@ public class CargoManifest {
     private String customsOffice;
     private String supportingDocumentType;
     private String supportingDocumentReference;
+    private String marfuriMultiple;
+    private String tipTranzit;
 }
