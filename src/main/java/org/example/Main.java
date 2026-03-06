@@ -322,7 +322,7 @@ public class Main {
 
     private static void addMessage(Element message) {
         addTextElement(message, "MessageSender", NS_COMMON, COMPANY_EORI);
-        addTextElement(message, "MessageRecipient", NS_COMMON, "IMP");
+        addTextElement(message, "MessageRecipient", NS_COMMON, "IMP.RO");
         addTextElement(message, "PreparationDateAndTime", NS_COMMON,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString());
         addTextElement(message, "MessageIdentification", NS_COMMON, UUID.randomUUID().toString());
@@ -332,7 +332,7 @@ public class Main {
     private static void addImportOperation(Element importOperation, String lrn) {
         addTextElement(importOperation, "LRN", NS_DECLARATION, lrn);
         addTextElement(importOperation, "declarationType", NS_DECLARATION, "IM");
-        addTextElement(importOperation, "additionalDeclarationType", NS_DECLARATION, "A");
+        addTextElement(importOperation, "additionalDeclarationType", NS_DECLARATION, "D");
     }
 
     private static void addNationalDeclaration(Element nationalDeclaration) {
