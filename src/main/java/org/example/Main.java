@@ -384,7 +384,7 @@ public class Main {
         addTextElement(supportingDocument2, "type", NS_DECLARATION,
                 defaultIfBlank("1094", "1094"));
         addTextElement(supportingDocument2, "referenceNumber", NS_DECLARATION,
-                defaultIfBlank("APROBARE VAMA NR. 671/05.03.2026", "APROBARE VAMA NR. 671/05.03.2026"));
+                defaultIfBlank("APROBARE VAMA NR. 690/09.03.2026", "APROBARE VAMA NR. 690/09.03.2026"));
 
         Element exporter = new Element("Exporter", NS_DECLARATION);
         goodsShipment.addContent(exporter);
