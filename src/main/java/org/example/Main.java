@@ -195,6 +195,9 @@ public class Main {
                         case 20:
                             cargoManifest.setCustomsOffice(formatter.formatCellValue(cell));
                             break;
+                        case 22:
+                            cargoManifest.setDocumentJustificativ(formatter.formatCellValue(cell));
+                            break;
                         case 25:
                             cargoManifest.setHarmonizedCode(formatter.formatCellValue(cell));
                             break;

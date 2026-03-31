@@ -44,4 +44,5 @@ public class CargoManifest {
     private String supportingDocumentReference;
     private String marfuriMultiple;
     private String tipTranzit;
+    private String documentJustificativ;
 }
